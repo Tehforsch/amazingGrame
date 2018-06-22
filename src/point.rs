@@ -16,6 +16,21 @@ impl Point {
     pub fn norm(self) -> f64 {
         (self.x.powi(2) + self.y.powi(2)).sqrt()
     }
+
+    pub fn rotate(self, angle: f64) -> Point {
+        Point {
+            x: self.x * angle.cos() - self.y * angle.sin(),
+            y: self.x * angle.sin() + self.y * angle.cos()
+        }
+    }
+    
+    pub fn cross(self, other: Point) -> f64 {
+        self.x * other.y - self.y * other.x
+    }
+
+    pub fn from_angle(angle: f64) -> Point {
+        Point{ x: angle.cos(), y: angle.sin() }
+    }
 }
 
 impl Add for Point {

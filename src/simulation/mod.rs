@@ -1,27 +1,33 @@
 
-extern crate rand;
-
-use point::Point;
-
 pub mod body;
 
+use point::Point;
+use self::body::Body;
+use game::object::Object;
+
 const DT : f64 = 0.01;
-const G : f64 = 100.0;
+const G : f64 = 200.0;
+const FRICTION : f64 = 0.0;
+const ANGULAR_FRICTION : f64 = 0.0;
+
 
 pub struct Simulation {
-    pub bodies : Vec<body::Body>
+    pub bodies: Vec<Body>
 }
 
 impl Simulation {
     pub fn timestep(&mut self) {
         self.gravity();
         self.integrate();
+        self.friction();
     }
+
     pub fn integrate(&mut self) {
         for body in self.bodies.iter_mut() {
-            body.timestep(DT);
+            body.integrate(DT);
         }
     }
+
     pub fn gravity(&mut self) {
         let mut slice = &mut self.bodies[..];
         let length = slice.len();
@@ -35,9 +41,18 @@ impl Simulation {
             }
         }
     }
+
+    pub fn friction(&mut self) {
+        for mut b in self.bodies.iter_mut() {
+            let friction = b.vel * -FRICTION;
+            let afriction = b.avel * -ANGULAR_FRICTION;
+            b.apply_force(friction);
+            b.apply_torque(afriction);
+        }
+    }
 }
 
-fn apply_gravity(body1 : &mut body::Body, body2 : &mut body::Body) {
+fn apply_gravity(body1 : &mut Body, body2 : &mut Body) {
     let distance = body1.pos - body2.pos;
     let length = distance.norm();
     let force = -G * body1.mass * body2.mass * distance / length.powi(2);
@@ -45,7 +60,7 @@ fn apply_gravity(body1 : &mut body::Body, body2 : &mut body::Body) {
     body2.apply_force(-force);
 }
 
-fn handle_collisions(body1 : &mut body::Body, body2 : &mut body::Body) {
+fn handle_collisions(body1 : &mut Body, body2 : &mut Body) {
     let distance = body1.pos - body2.pos;
     let length = distance.norm();
     let collision_normal = distance / length;
@@ -54,18 +69,4 @@ fn handle_collisions(body1 : &mut body::Body, body2 : &mut body::Body) {
         body1.apply_impulse(-collision_normal * impulse);
         body2.apply_impulse(collision_normal * impulse);
     }
-}
-
-pub fn initialize_random_sim(num_bodies: i64) -> Simulation {
-    let mut bodies : Vec<body::Body> = vec![];
-    for _ in 0..num_bodies {
-        let x = rand::random::<f64>() * 1600.0-400.0;
-        let y = rand::random::<f64>() * 1600.0-400.0;
-        let mass = rand::random::<f64>() * 3.0 + 0.3;
-        bodies.push(body::get_body(Point{x: x, y: y}, mass));
-    }
-    let mut sim = Simulation {
-        bodies: bodies
-    };
-    sim
 }

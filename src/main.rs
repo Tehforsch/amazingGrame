@@ -1,12 +1,13 @@
 extern crate piston_window;
 extern crate opengl_graphics;
 
-use piston_window::{EventLoop, Input, OpenGL, PistonWindow, WindowSettings};
+use piston_window::{Button,EventLoop, Input, OpenGL, PistonWindow, WindowSettings,Motion};
 use opengl_graphics::GlGraphics;
 
 mod point;
 mod simulation;
 mod render;
+mod game;
 
 fn main() {
     let opengl = OpenGL::V3_2;
@@ -20,16 +21,37 @@ fn main() {
 
     let mut gl = GlGraphics::new(opengl);
 
-    let mut sim = simulation::initialize_random_sim(50);
+
+    let mut game = game::Game::new();
 
     while let Some(e) = window.next() {
         match e {
+            Input::Press(Button::Keyboard(key)) => {
+                game.input_controller.key_press(key);
+            }
+
+            Input::Release(Button::Keyboard(key)) => {
+                game.input_controller.key_release(key);
+            }
+
+            Input::Press(Button::Controller(button)) => {
+                game.input_controller.button_press(button);
+            }
+
+            Input::Release(Button::Controller(button)) => {
+                game.input_controller.button_release(button);
+            }
+
+            Input::Move(Motion::ControllerAxis(axis)) => {
+                game.input_controller.handle_axis(axis);
+            }
+
             Input::Update(_) => {
-                sim.timestep();
+                game.timestep();
             }
 
             Input::Render(args) => {
-                gl.draw(args.viewport(), |context, gl| render::render(context, gl, &mut sim));
+                gl.draw(args.viewport(), |context, gl| render::render(context, gl, &game));
             }
 
             _ => {}
