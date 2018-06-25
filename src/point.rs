@@ -31,6 +31,10 @@ impl Point {
     pub fn from_angle(angle: f64) -> Point {
         Point{ x: angle.cos(), y: angle.sin() }
     }
+
+    pub fn normalized(self) -> Point {
+        self / self.norm()
+    }
 }
 
 impl Add for Point {

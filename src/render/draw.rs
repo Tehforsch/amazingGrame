@@ -1,3 +1,4 @@
+use piston_window;
 use piston_window::ellipse::Ellipse;
 use piston_window::{Context, Transformed};
 use piston_window::types::Color;
@@ -15,6 +16,10 @@ pub fn circle(pos: Point, radius: f64, color: Color, context: Context, gl: &mut 
         &Default::default(),
         context.trans(pos.x-radius, pos.y-radius).transform,
         gl);
+}
+
+pub fn line(start: Point, end: Point, color: Color, context: Context, gl: &mut GlGraphics) {
+    piston_window::line(color, 1., [ start.x, start.y, end.x, end.y ], context.transform, gl);
 }
 
 pub mod color {

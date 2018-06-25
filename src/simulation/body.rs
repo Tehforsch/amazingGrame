@@ -1,6 +1,6 @@
 use point::Point;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Body {
     pub pos: Point,
     pub vel: Point,
@@ -10,7 +10,11 @@ pub struct Body {
     pub aacc: f64,
     pub mass: f64,
     pub radius: f64,
-    pub moment_of_inertia: f64
+    pub moment_of_inertia: f64,
+    pub gravity_flag: bool,
+    pub did_collide: Option<usize>,
+    pub id: usize,
+    pub should_be_removed: bool
 }
 
 impl Body {
@@ -56,12 +60,11 @@ impl Body {
             aacc: 0.0,
             mass: mass,
             radius: radius,
-            moment_of_inertia: moment_of_inertia
+            moment_of_inertia: moment_of_inertia,
+            gravity_flag: false,
+            did_collide: None,
+            id: 0,
+            should_be_removed: false
         }
     }
-}
-
-pub fn get_body(pos: Point, mass: f64) -> Body {
-    let radius = 20.0 * mass.sqrt();
-    Body::new(pos, mass, radius)
 }
