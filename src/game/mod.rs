@@ -21,30 +21,47 @@ const BULLET_RADIUS : f64 = 10.0;
 const SHIP_MASS : f64 = 1.0;
 const SHIP_RADIUS : f64 = 25.0;
 
+const STAR_MASS : f64 = 0.3;
+const STAR_RADIUS : f64 = 25.0;
+
+const MIN_MASS_BLACKHOLE: f64 = 70.0;
+const MAX_MASS_BLACKHOLE: f64 = 100.0;
+
 const SPRING_STRENGTH : f64 = 5.0;
 const SPRING_REST_LENGTH : f64 = 50.0;
 
 const NUM_SHIPS : usize = 1;
 const NUM_STARS : usize = 10;
+const NUM_BLACKHOLES : usize = 4;
 
 pub struct Game {
     pub input_controller: InputController,
     pub objects: Vec<Object>,
     pub springs: Vec<Spring>,
-    pub sim: simulation::Simulation
+    pub sim: simulation::Simulation,
+    pub game_over: bool,
+    pub score: i32
 }
 
 impl Game {
     pub fn new() -> Game{
         let mut bodies = get_ships(NUM_SHIPS);
-        bodies.append(&mut get_random_bodies(NUM_STARS));
+        bodies.append(&mut get_stars(NUM_STARS));
+        bodies.append(&mut get_black_holes(NUM_BLACKHOLES));
+        bodies.push(get_mothership());
         let mut objects = vec![];
         for (i, b) in bodies.iter().enumerate() {
             if i < NUM_SHIPS {
                 objects.push(Object::new(i, ObjectType::Ship));
             }
-            else {
+            else if i < NUM_SHIPS + NUM_STARS {
                 objects.push(Object::new(i, ObjectType::Star));
+            }
+            else if i < NUM_SHIPS + NUM_STARS + NUM_BLACKHOLES {
+                objects.push(Object::new(i, ObjectType::BlackHole));
+            }
+            else {
+                objects.push(Object::new(i, ObjectType::Mothership));
             }
         }
         for i in 0..NUM_SHIPS {
@@ -54,25 +71,29 @@ impl Game {
             input_controller: InputController::new(),
             objects: objects,
             sim: simulation::Simulation::new(bodies),
-            springs: vec![]
+            springs: vec![],
+            game_over: false,
+            score: 0
         }
-    }
-
-    pub fn rem_object(&mut self, object: &mut Object) {
-        object.should_be_removed = true;
-        self.sim.get_body_mut(object.body).should_be_removed = true;
     }
 
     pub fn timestep(&mut self) {
         self.control();
-        self.sim.timestep();
-        self.handle_bullets();
         self.handle_springs();
+        self.handle_bullets();
+        self.handle_stars();
         self.remove_objects();
+        self.sim.timestep();
     }
 
     pub fn remove_objects(&mut self) {
+        for object in self.objects.iter_mut() {
+            if object.should_be_removed {
+                self.sim.get_body_mut(object.body).should_be_removed = true;
+            }
+        }
         self.objects.retain(|o| !o.should_be_removed);
+        self.springs.retain(|s| !s.should_be_removed);
     }
 
     pub fn handle_springs(&mut self) {
@@ -83,14 +104,37 @@ impl Game {
             let length = distance.norm();
             let force = -SPRING_STRENGTH * (length - SPRING_REST_LENGTH) * distance.normalized();
             spring.force = force;
-            // self.sim.get_body_mut(spring.body1).apply_force(force);
-            // self.sim.get_body_mut(spring.body2).apply_force(-force);
         }
         for spring in self.springs.iter() {
             self.sim.get_body_mut(spring.body1).apply_force(spring.force);
         }
         for spring in self.springs.iter() {
             self.sim.get_body_mut(spring.body2).apply_force(-spring.force);
+        }
+    }
+
+    pub fn handle_stars(&mut self) {
+        let mothership_id = self.get_mothership().body;
+        for star in self.objects.iter_mut() {
+            match star.type_ {
+                ObjectType::Star => {
+                    match self.sim.get_body(star.body).did_collide {
+                        Some(body) => {
+                            if body == mothership_id {
+                                star.should_be_removed = true;
+                                for spring in self.springs.iter_mut() {
+                                    if spring.body1 == star.body || spring.body2 == star.body {
+                                        spring.should_be_removed = true;
+                                    }
+                                    self.score += 1;
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                },
+                _ => {}
+            }
         }
     }
 
@@ -102,7 +146,6 @@ impl Game {
                         Some(body) => {
                             self.springs.push(Spring::new(body, ship));
                             bullet.should_be_removed = true;
-                            self.sim.get_body_mut(bullet.body).should_be_removed = true;
                         }
                         _ => {}
                     }
@@ -110,6 +153,10 @@ impl Game {
                 _ => {}
             }
         }
+    }
+
+    pub fn get_mothership(&self) -> &Object {
+        self.objects.iter().filter(|o| match o.type_ { ObjectType::Mothership => true, _ => false }).next().unwrap()
     }
 
     pub fn control(&mut self) {
@@ -175,12 +222,33 @@ pub fn get_ships(num_ships: usize) -> Vec<Body> {
     bodies
 }
 
-pub fn get_random_bodies(num_bodies: usize) -> Vec<Body> {
+pub fn get_stars(num_bodies: usize) -> Vec<Body> {
     let mut bodies : Vec<Body> = vec![];
     for _ in 0..num_bodies {
         let x = rand::random::<f64>() * 1000.0+500.0;
         let y = rand::random::<f64>() * 1000.0+100.0;
-        let mass = rand::random::<f64>() * 15.0 + 30.0;
+        let mass = STAR_MASS;
+        let radius = STAR_RADIUS;
+        bodies.push(Body::new(Point{x: x, y: y}, mass, radius))
+    }
+    bodies
+}
+
+pub fn get_mothership() -> Body {
+    let mut bodies : Vec<Body> = vec![];
+    let x = 100.0;
+    let y = 100.0;
+    let mass = 1000.0;
+    let radius = 50.0;
+    Body::new(Point{x: x, y: y}, mass, radius)
+}
+
+pub fn get_black_holes(num_bodies: usize) -> Vec<Body> {
+    let mut bodies : Vec<Body> = vec![];
+    for _ in 0..num_bodies {
+        let x = rand::random::<f64>() * 1000.0+500.0;
+        let y = rand::random::<f64>() * 1000.0+100.0;
+        let mass = rand::random::<f64>() * (MAX_MASS_BLACKHOLE-MIN_MASS_BLACKHOLE) + MIN_MASS_BLACKHOLE;
         let radius = 10.0 * mass.sqrt();
         bodies.push(Body::new(Point{x: x, y: y}, mass, radius))
     }

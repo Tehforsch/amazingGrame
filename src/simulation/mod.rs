@@ -8,6 +8,7 @@ const FRICTION : f64 = 0.0;
 const ANGULAR_FRICTION : f64 = 0.0;
 const CLAMP_IMPULSES : bool = false;
 const DISTANCE_SCALING: i32 = 4;
+const BAUMGARTE_CORRECTION_STRENGTH: f64 = 10.0;
 
 pub struct Simulation {
     pub bodies: Vec<Body>,
@@ -20,6 +21,11 @@ impl Simulation {
         self.collisions();
         self.integrate();
         self.friction();
+        self.remove_bodies();
+    }
+
+    pub fn remove_bodies(&mut self) {
+        self.bodies.retain(|b| !b.should_be_removed);
     }
 
     pub fn integrate(&mut self) {
@@ -69,8 +75,7 @@ impl Simulation {
     }
 
     pub fn get_body(&self, id: usize) -> &Body {
-        let b = self.bodies.iter().filter(|b| b.id == id).next().unwrap();
-        b
+        self.bodies.iter().filter(|b| b.id == id).next().unwrap()
     }
 
     pub fn get_body_mut(&mut self, id: usize) -> &mut Body {
@@ -109,7 +114,7 @@ fn handle_collisions(body1 : &mut Body, body2 : &mut Body) {
     let length = distance.norm();
     let collision_normal = distance / length;
     if body1.radius + body2.radius > length {
-        let impulse = (body1.mass * body2.mass) / (body1.mass + body2.mass) * collision_normal * (body1.vel - body2.vel) - (body1.radius + body2.radius - length);
+        let impulse = (body1.mass * body2.mass) / (body1.mass + body2.mass) * collision_normal * (body1.vel - body2.vel) - BAUMGARTE_CORRECTION_STRENGTH * (body1.radius + body2.radius - length);
         if !CLAMP_IMPULSES || impulse > 0.0 {
             body1.apply_impulse(-collision_normal * impulse);
             body2.apply_impulse(collision_normal * impulse);

@@ -3,11 +3,13 @@ extern crate opengl_graphics;
 
 use piston_window::{Button,EventLoop, Input, OpenGL, PistonWindow, WindowSettings,Motion};
 use opengl_graphics::GlGraphics;
+use self::resources::Resources;
 
 mod point;
 mod simulation;
 mod render;
 mod game;
+mod resources;
 
 fn main() {
     let opengl = OpenGL::V3_2;
@@ -20,8 +22,7 @@ fn main() {
     window.set_max_fps(60);
 
     let mut gl = GlGraphics::new(opengl);
-
-
+    let mut resources = Resources::new();
     let mut game = game::Game::new();
 
     while let Some(e) = window.next() {
@@ -51,7 +52,7 @@ fn main() {
             }
 
             Input::Render(args) => {
-                gl.draw(args.viewport(), |context, gl| render::render(context, gl, &game));
+                gl.draw(args.viewport(), |context, gl| render::render(context, gl, &mut resources, &game));
             }
 
             _ => {}

@@ -21,12 +21,3 @@ pub fn circle(pos: Point, radius: f64, color: Color, context: Context, gl: &mut 
 pub fn line(start: Point, end: Point, color: Color, context: Context, gl: &mut GlGraphics) {
     piston_window::line(color, 1., [ start.x, start.y, end.x, end.y ], context.transform, gl);
 }
-
-pub mod color {
-    pub const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
-    pub const BLUE: [f32; 4] = [0.0, 0.0, 1.0, 1.0];
-    pub const ORANGE: [f32; 4] = [1.0, 0.5, 0.0, 1.0];
-    pub const RED: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
-    pub const VIOLET: [f32; 4] = [0.6, 0.0, 1.0, 1.0];
-    pub const YELLOW: [f32; 4] = [1.0, 1.0, 0.0, 1.0];
-}

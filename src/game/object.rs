@@ -13,5 +13,5 @@ impl Object {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ObjectType {
-    Star, Bullet(usize), Ship
+    Star, Bullet(usize), Ship, BlackHole, Mothership
 }
