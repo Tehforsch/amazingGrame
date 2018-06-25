@@ -11,7 +11,7 @@ pub struct Body {
     pub mass: f64,
     pub radius: f64,
     pub moment_of_inertia: f64,
-    pub gravity_flag: bool,
+    pub gravity_flag: i32,
     pub did_collide: Option<usize>,
     pub id: usize,
     pub should_be_removed: bool
@@ -61,7 +61,7 @@ impl Body {
             mass: mass,
             radius: radius,
             moment_of_inertia: moment_of_inertia,
-            gravity_flag: false,
+            gravity_flag: 0,
             did_collide: None,
             id: 0,
             should_be_removed: false

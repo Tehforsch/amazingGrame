@@ -4,12 +4,15 @@ extern crate opengl_graphics;
 use piston_window::{Button,EventLoop, Input, OpenGL, PistonWindow, WindowSettings,Motion};
 use opengl_graphics::GlGraphics;
 use self::resources::Resources;
+use game::input::{InputController, Actions};
 
 mod point;
 mod simulation;
 mod render;
 mod game;
 mod resources;
+
+const NUM_PLAYERS: usize = 2;
 
 fn main() {
     let opengl = OpenGL::V3_2;
@@ -25,29 +28,20 @@ fn main() {
     let mut resources = Resources::new();
     let mut game = game::Game::new();
 
+    let mut input_controller = InputController::new(NUM_PLAYERS);
+
     while let Some(e) = window.next() {
         match e {
             Input::Press(Button::Keyboard(key)) => {
-                game.input_controller.key_press(key);
+                input_controller.key_press(key);
             }
 
             Input::Release(Button::Keyboard(key)) => {
-                game.input_controller.key_release(key);
-            }
-
-            Input::Press(Button::Controller(button)) => {
-                game.input_controller.button_press(button);
-            }
-
-            Input::Release(Button::Controller(button)) => {
-                game.input_controller.button_release(button);
-            }
-
-            Input::Move(Motion::ControllerAxis(axis)) => {
-                game.input_controller.handle_axis(axis);
+                input_controller.key_release(key);
             }
 
             Input::Update(_) => {
+                game.control(input_controller.actions());
                 game.timestep();
             }
 

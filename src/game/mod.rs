@@ -4,7 +4,7 @@ pub mod input;
 pub mod object;
 pub mod spring;
 
-use self::input::{InputController, Actions};
+use self::input::{ Actions};
 use self::object::{Object,ObjectType};
 use self::spring::Spring;
 use ::simulation;
@@ -30,12 +30,11 @@ const MAX_MASS_BLACKHOLE: f64 = 100.0;
 const SPRING_STRENGTH : f64 = 5.0;
 const SPRING_REST_LENGTH : f64 = 50.0;
 
-const NUM_SHIPS : usize = 1;
+const NUM_SHIPS : usize = 2;
 const NUM_STARS : usize = 10;
 const NUM_BLACKHOLES : usize = 4;
 
 pub struct Game {
-    pub input_controller: InputController,
     pub objects: Vec<Object>,
     pub springs: Vec<Spring>,
     pub sim: simulation::Simulation,
@@ -64,13 +63,17 @@ impl Game {
                 objects.push(Object::new(i, ObjectType::Mothership));
             }
         }
-        for i in 0..NUM_SHIPS {
-            bodies[i].gravity_flag = true;
+        let mut sim = simulation::Simulation::new(bodies);
+        for object in objects.iter_mut() { 
+            match object.type_ {
+                ObjectType::BlackHole => sim.get_body_mut(object.body).gravity_flag = 1,
+                ObjectType::Ship => sim.get_body_mut(object.body).gravity_flag = 2,
+                _ => {}
+            }
         }
         Game {
-            input_controller: InputController::new(),
             objects: objects,
-            sim: simulation::Simulation::new(bodies),
+            sim: sim,
             springs: vec![],
             game_over: false,
             score: 0
@@ -78,7 +81,6 @@ impl Game {
     }
 
     pub fn timestep(&mut self) {
-        self.control();
         self.handle_springs();
         self.handle_bullets();
         self.handle_stars();
@@ -159,12 +161,11 @@ impl Game {
         self.objects.iter().filter(|o| match o.type_ { ObjectType::Mothership => true, _ => false }).next().unwrap()
     }
 
-    pub fn control(&mut self) {
-        let actions = self.input_controller.actions();
+    pub fn control(&mut self, actions: Vec<Actions>) {
         for ship in 0..NUM_SHIPS {
-            Game::control_turning(&mut self.sim.get_body_mut(ship), actions);
-            Game::control_moving(&mut self.sim.get_body_mut(ship), actions);
-            self.control_shooting(ship, actions);
+            Game::control_turning(&mut self.sim.get_body_mut(ship), actions[ship]);
+            Game::control_moving(&mut self.sim.get_body_mut(ship), actions[ship]);
+            self.control_shooting(ship, actions[ship]);
         }
     }
 
