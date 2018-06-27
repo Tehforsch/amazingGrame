@@ -3,11 +3,12 @@ pub mod body;
 use self::body::Body;
 
 const DT : f64 = 0.01;
-const G : f64 = 2000000.0;
-const FRICTION : f64 = 0.0;
+// const G : f64 = 2000000.0;
+const G : f64 = 400.0;
+const FRICTION : f64 = 1.0;
 const ANGULAR_FRICTION : f64 = 0.0;
 const CLAMP_IMPULSES : bool = false;
-const DISTANCE_SCALING: i32 = 4;
+const DISTANCE_SCALING: i32 = 2;
 const BAUMGARTE_CORRECTION_STRENGTH: f64 = 10.0;
 
 pub struct Simulation {

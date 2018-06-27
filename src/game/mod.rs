@@ -13,12 +13,13 @@ use ::point::Point;
 
 const TURN_VEL : f64 = 5.0;
 const MOVE_STRENGTH : f64 = 10.0;
-const TURN_VEL_DECAY : f64 = 0.05;
+const TURN_VEL_DECAY : f64 = 0.15;
 
 const BULLET_VEL : f64 = 1000.0;
 const BULLET_RADIUS : f64 = 10.0;
+const BULLET_MASS: f64 = 0.1;
 
-const SHIP_MASS : f64 = 1.0;
+const SHIP_MASS : f64 = 0.3;
 const SHIP_RADIUS : f64 = 25.0;
 
 const STAR_MASS : f64 = 0.3;
@@ -31,7 +32,7 @@ const SPRING_STRENGTH : f64 = 5.0;
 const SPRING_REST_LENGTH : f64 = 50.0;
 
 const NUM_SHIPS : usize = 2;
-const NUM_STARS : usize = 10;
+const NUM_STARS : usize = 40;
 const NUM_BLACKHOLES : usize = 4;
 
 pub struct Game {
@@ -68,6 +69,7 @@ impl Game {
             match object.type_ {
                 ObjectType::BlackHole => sim.get_body_mut(object.body).gravity_flag = 1,
                 ObjectType::Ship => sim.get_body_mut(object.body).gravity_flag = 2,
+                ObjectType::Star => sim.get_body_mut(object.body).gravity_flag = 2,
                 _ => {}
             }
         }
@@ -128,8 +130,8 @@ impl Game {
                                     if spring.body1 == star.body || spring.body2 == star.body {
                                         spring.should_be_removed = true;
                                     }
-                                    self.score += 1;
                                 }
+                                self.score += 1;
                             }
                         }
                         _ => {}
@@ -202,8 +204,9 @@ impl Game {
             }
             let direction = Point::from_angle(self.sim.get_body(ship).apos);
             let spawn_pos = self.sim.get_body(ship).pos + direction * (self.sim.get_body(ship).radius + BULLET_RADIUS * 1.1);
-            let mut bullet = Body::new(spawn_pos, 1.0, 10.0);
+            let mut bullet = Body::new(spawn_pos, BULLET_MASS, 10.0);
             bullet.vel = direction * BULLET_VEL;
+            self.sim.get_body_mut(ship).apply_impulse(-bullet.vel * BULLET_MASS);
             let index = self.sim.add_body(bullet);
             self.objects.push(Object::new(index, ObjectType::Bullet(ship)));
         }
