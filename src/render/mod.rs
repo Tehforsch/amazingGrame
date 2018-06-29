@@ -36,7 +36,7 @@ pub fn render(context: Context, gl: &mut GlGraphics, resources: &mut Resources, 
             Star => render_body(context, gl, game.sim.get_body(object.body)),
             BlackHole => render_black_hole(context, gl, game.sim.get_body(object.body)),
             Mothership => render_mothership(context, gl, game.sim.get_body(object.body)),
-            Bullet(ship) => render_bullet(context, gl, game.sim.get_body(object.body), game.sim.get_body(ship))
+            Bullet(ship, _) => render_bullet(context, gl, game.sim.get_body(object.body), game.sim.get_body(ship))
         }
     }
     for spring in game.springs.iter() {

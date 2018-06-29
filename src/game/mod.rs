@@ -15,9 +15,10 @@ const TURN_VEL : f64 = 5.0;
 const MOVE_STRENGTH : f64 = 10.0;
 const TURN_VEL_DECAY : f64 = 0.15;
 
-const BULLET_VEL : f64 = 1000.0;
+const BULLET_VEL : f64 = 2000.0;
 const BULLET_RADIUS : f64 = 10.0;
 const BULLET_MASS: f64 = 0.1;
+const BULLET_LIFETIME: f64 = 1.0;
 
 const SHIP_MASS : f64 = 0.3;
 const SHIP_RADIUS : f64 = 25.0;
@@ -36,6 +37,16 @@ const NUM_STARS : usize = 40;
 const NUM_BLACKHOLES : usize = 4;
 
 const STAR_SCORE: i32 = 100;
+
+pub const ARENA_WIDTH: f64 = 1920.0;
+pub const ARENA_HEIGHT: f64 = 1080.0;
+const RIGHT_MARGIN: f64 = 200.0;
+const LEFT_MARGIN: f64 = 200.0;
+
+pub const DISTANCE_SCALING: i32 = 2;
+pub const WALL_RESTITUTION: f64 = 0.5;
+pub const G : f64 = 400.0;
+pub const FRICTION : f64 = 0.5;
 
 pub struct Game {
     pub objects: Vec<Object>,
@@ -146,15 +157,26 @@ impl Game {
     pub fn handle_bullets(&mut self) {
         for bullet in self.objects.iter_mut() {
             match bullet.type_ {
-                ObjectType::Bullet(ship) => {
+                ObjectType::Bullet(ship, time) => {
                     match self.sim.get_body(bullet.body).did_collide {
                         Some(body) => {
                             bullet.should_be_removed = true;
                             if body != ship {
-                                self.springs.push(Spring::new(body, ship));
+                                let mut add_spring = true;
+                                for spring in self.springs.iter() {
+                                    if spring.body1 == body && spring.body2 == ship{
+                                        add_spring = false;
+                                    }
+                                }
+                                if add_spring {
+                                    self.springs.push(Spring::new(body, ship));
+                                }
                             }
                         }
                         _ => {}
+                    }
+                    if self.sim.time - time > BULLET_LIFETIME {
+                        bullet.should_be_removed = true;
                     }
                 },
                 _ => {}
@@ -197,7 +219,7 @@ impl Game {
         if actions.shoot {
             for object in self.objects.iter() {
                 match object.type_ {
-                    ObjectType::Bullet(ship_) => {
+                    ObjectType::Bullet(ship_, _) => {
                         if ship_ == ship {
                             return;
                         }
@@ -211,7 +233,7 @@ impl Game {
             bullet.vel = direction * BULLET_VEL;
             self.sim.get_body_mut(ship).apply_impulse(-bullet.vel * BULLET_MASS);
             let index = self.sim.add_body(bullet);
-            self.objects.push(Object::new(index, ObjectType::Bullet(ship)));
+            self.objects.push(Object::new(index, ObjectType::Bullet(ship, self.sim.time)));
         }
     }
 
@@ -232,8 +254,8 @@ pub fn get_ships(num_ships: usize) -> Vec<Body> {
 pub fn get_stars(num_bodies: usize) -> Vec<Body> {
     let mut bodies : Vec<Body> = vec![];
     for _ in 0..num_bodies {
-        let x = rand::random::<f64>() * 1000.0+500.0;
-        let y = rand::random::<f64>() * 1000.0+100.0;
+        let x = rand::random::<f64>() * (ARENA_WIDTH-LEFT_MARGIN) + LEFT_MARGIN;
+        let y = rand::random::<f64>() * (ARENA_HEIGHT-RIGHT_MARGIN) + RIGHT_MARGIN;
         let mass = STAR_MASS;
         let radius = STAR_RADIUS;
         bodies.push(Body::new(Point{x: x, y: y}, mass, radius))
@@ -253,8 +275,8 @@ pub fn get_mothership() -> Body {
 pub fn get_black_holes(num_bodies: usize) -> Vec<Body> {
     let mut bodies : Vec<Body> = vec![];
     for _ in 0..num_bodies {
-        let x = rand::random::<f64>() * 1000.0+500.0;
-        let y = rand::random::<f64>() * 1000.0+100.0;
+        let x = rand::random::<f64>() * (ARENA_WIDTH-LEFT_MARGIN) + LEFT_MARGIN;
+        let y = rand::random::<f64>() * (ARENA_HEIGHT-RIGHT_MARGIN) + RIGHT_MARGIN;
         let mass = rand::random::<f64>() * (MAX_MASS_BLACKHOLE-MIN_MASS_BLACKHOLE) + MIN_MASS_BLACKHOLE;
         let radius = 10.0 * mass.sqrt();
         bodies.push(Body::new(Point{x: x, y: y}, mass, radius))

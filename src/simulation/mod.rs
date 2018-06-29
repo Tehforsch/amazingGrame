@@ -1,28 +1,36 @@
 pub mod body;
 
+use ::point::Point;
 use self::body::Body;
+use ::game::{ARENA_HEIGHT,ARENA_WIDTH,G,DISTANCE_SCALING,WALL_RESTITUTION,FRICTION};
 
 const DT : f64 = 0.01;
 // const G : f64 = 2000000.0;
-const G : f64 = 400.0;
-const FRICTION : f64 = 1.0;
 const ANGULAR_FRICTION : f64 = 0.0;
 const CLAMP_IMPULSES : bool = false;
-const DISTANCE_SCALING: i32 = 2;
 const BAUMGARTE_CORRECTION_STRENGTH: f64 = 10.0;
+
+pub struct Wall {
+    pos: Point,
+    normal: Point
+}
 
 pub struct Simulation {
     pub bodies: Vec<Body>,
-    pub next_id: usize
+    pub next_id: usize,
+    pub walls: Vec<Wall>,
+    pub time: f64
 }
 
 impl Simulation {
     pub fn timestep(&mut self) {
         self.gravity();
         self.collisions();
+        self.wall_collisions();
         self.integrate();
         self.friction();
         self.remove_bodies();
+        self.time += DT;
     }
 
     pub fn remove_bodies(&mut self) {
@@ -66,6 +74,20 @@ impl Simulation {
         }
     }
 
+    fn wall_collisions(&mut self) {
+        for body in self.bodies.iter_mut() {
+            for wall in self.walls.iter() {
+                let projection_body = body.pos * wall.normal;
+                let projection_wall = wall.pos * wall.normal;
+                let depth = projection_wall - projection_body;
+                if depth > 0.0 {
+                    let normal_impulse = body.mass * body.vel * wall.normal;
+                    body.apply_impulse(wall.normal * (normal_impulse * (-1.0 - WALL_RESTITUTION) + depth * BAUMGARTE_CORRECTION_STRENGTH));
+                }
+            }
+        }
+    }
+
     pub fn friction(&mut self) {
         for mut b in self.bodies.iter_mut() {
             let friction = b.vel * -FRICTION;
@@ -95,9 +117,17 @@ impl Simulation {
             body.id = i;
         }
         let next_id = bodies.len();
+        let walls = vec![
+            Wall{pos: Point{x:0.0, y:0.0}, normal: Point{x:1.0, y:0.0}},
+            Wall{pos: Point{x:ARENA_WIDTH, y:0.0}, normal: Point{x:-1.0, y:0.0}},
+            Wall{pos: Point{x:0.0, y:0.0}, normal: Point{x:0.0, y:1.0}},
+            Wall{pos: Point{x:0.0, y:ARENA_HEIGHT}, normal: Point{x:0.0, y:-1.0}},
+        ];
         Simulation{
             bodies: bodies,
-            next_id: next_id
+            next_id: next_id,
+            walls: walls,
+            time: 0.0
         }
     }
 }
@@ -109,6 +139,7 @@ fn apply_gravity(body1 : &mut Body, body2 : &mut Body) {
     body1.apply_force(force);
     body2.apply_force(-force);
 }
+
 
 fn handle_collisions(body1 : &mut Body, body2 : &mut Body) {
     let distance = body1.pos - body2.pos;
