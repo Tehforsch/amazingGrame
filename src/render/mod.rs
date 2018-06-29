@@ -32,11 +32,14 @@ pub fn render(context: Context, gl: &mut GlGraphics, resources: &mut Resources, 
     piston_window::clear(BACKGROUND_COLOR, gl);
     for object in game.objects.iter() {
         match object.type_ {
-            Ship => render_ship(context, gl, game.sim.get_body(object.body)),
+            Ship(num) => render_ship(context, gl, game.sim.get_body(object.body), num),
             Star => render_body(context, gl, game.sim.get_body(object.body)),
             BlackHole => render_black_hole(context, gl, game.sim.get_body(object.body)),
             Mothership => render_mothership(context, gl, game.sim.get_body(object.body)),
-            Bullet(ship, _) => render_bullet(context, gl, game.sim.get_body(object.body), game.sim.get_body(ship))
+            Bullet(ship, _) => {
+                let ship = game.get_ship(ship);
+                render_bullet(context, gl, game.sim.get_body(object.body), game.sim.get_body(ship.body));
+            }
         }
     }
     for spring in game.springs.iter() {
@@ -64,7 +67,7 @@ pub fn render(context: Context, gl: &mut GlGraphics, resources: &mut Resources, 
 }
 
 fn print_help(context: Context, gl: &mut GlGraphics, resources: &mut Resources) {
-    let help_text = "F1: hide help\nF8: restart\n\nPlayer one:\nw: forward\na: turn left\nd: turn right\nleft shift: shoot\n\nPlayer two:\nUp: forward\nLeft: turn left\nRight: turn right\nright shift: shoot\nGoal: \nBring the stars (yellow) to the mothership (green)\nDon't crash into the black holes (grey)\n";
+    let help_text = "F1: hide help\nF8: restart\n\nPlayer one:\nw: forward\na: turn left\nd: turn right\nleft shift: shoot\nr: reset\n\nPlayer two:\nUp: forward\nLeft: turn left\nRight: turn right\nright shift: shoot\nBackspace: reset\n\nGoal: \nBring the stars (yellow) to the mothership (green)\nDon't crash into the black holes (grey)\n";
     for (i, line) in help_text.split("\n").enumerate() {
         piston_window::text(HELP_COLOR,
             22,
@@ -101,7 +104,7 @@ fn render_body(context: Context, gl: &mut GlGraphics, body: &Body) {
     piston_window::polygon(STAR_COLOR, STAR_POLYGON, transform, gl);
 }
 
-fn render_ship(context: Context, gl: &mut GlGraphics, ship: &Body) {
+fn render_ship(context: Context, gl: &mut GlGraphics, ship: &Body, ship_num: usize) {
     // Set the center of the player as the origin and rotate it
     let transform = context.transform
         .trans(ship.pos.x, ship.pos.y)

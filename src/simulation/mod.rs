@@ -79,7 +79,7 @@ impl Simulation {
             for wall in self.walls.iter() {
                 let projection_body = body.pos * wall.normal;
                 let projection_wall = wall.pos * wall.normal;
-                let depth = projection_wall - projection_body;
+                let depth = projection_wall - projection_body + body.radius;
                 if depth > 0.0 {
                     let normal_impulse = body.mass * body.vel * wall.normal;
                     body.apply_impulse(wall.normal * (normal_impulse * (-1.0 - WALL_RESTITUTION) + depth * BAUMGARTE_CORRECTION_STRENGTH));

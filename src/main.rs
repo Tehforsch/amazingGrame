@@ -49,6 +49,7 @@ fn main() {
             Input::Update(_) => {
                 game.control(input_controller.actions());
                 game.timestep();
+                input_controller.reset();
             }
 
             Input::Render(args) => {

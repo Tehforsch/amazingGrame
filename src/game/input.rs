@@ -11,7 +11,8 @@ pub struct Actions {
     pub rotate_left: bool,
     pub rotate_right: bool,
     pub boost: bool,
-    pub shoot: bool
+    pub shoot: bool,
+    pub respawn: bool
 }
 
 impl InputController {
@@ -22,7 +23,8 @@ impl InputController {
                 rotate_left:false, 
                 rotate_right:false, 
                 boost:false, 
-                shoot:false
+                shoot:false,
+                respawn: false
             });
         }
         InputController {
@@ -35,9 +37,17 @@ impl InputController {
         self.actions.clone()
     }
 
+    pub fn reset(&mut self) {
+        for actions in self.actions.iter_mut() {
+            actions.respawn = false;
+        }
+    }
+
     pub fn key_press(&mut self, key: Key) {
         match key {
             Key::F1 => self.draw_help = !self.draw_help,
+            Key::R => self.actions[1].respawn = true,
+            Key::Backspace => self.actions[0].respawn = true,
             _ => self.handle_key(key, true)
         }
     }

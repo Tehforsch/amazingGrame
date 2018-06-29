@@ -1,4 +1,4 @@
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Object {
     pub body: usize,
     pub type_: ObjectType,
@@ -13,5 +13,5 @@ impl Object {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ObjectType {
-    Star, Bullet(usize, f64), Ship, BlackHole, Mothership
+    Star, Bullet(usize, f64), Ship(usize), BlackHole, Mothership
 }
