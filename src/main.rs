@@ -19,7 +19,7 @@ fn main() {
 
     let mut window: PistonWindow = WindowSettings::new(
         "Template", [1024 as u32, 600 as u32])
-        .opengl(opengl).samples(8).exit_on_esc(true).build().unwrap();
+        .opengl(opengl).samples(8).fullscreen(true).exit_on_esc(true).build().unwrap();
 
     window.set_ups(60);
     window.set_max_fps(60);
