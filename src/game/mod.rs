@@ -35,6 +35,8 @@ const NUM_SHIPS : usize = 2;
 const NUM_STARS : usize = 40;
 const NUM_BLACKHOLES : usize = 4;
 
+const STAR_SCORE: i32 = 100;
+
 pub struct Game {
     pub objects: Vec<Object>,
     pub springs: Vec<Spring>,
@@ -69,7 +71,6 @@ impl Game {
             match object.type_ {
                 ObjectType::BlackHole => sim.get_body_mut(object.body).gravity_flag = 1,
                 ObjectType::Ship => sim.get_body_mut(object.body).gravity_flag = 2,
-                ObjectType::Star => sim.get_body_mut(object.body).gravity_flag = 2,
                 _ => {}
             }
         }
@@ -131,7 +132,7 @@ impl Game {
                                         spring.should_be_removed = true;
                                     }
                                 }
-                                self.score += 1;
+                                self.score += STAR_SCORE;
                             }
                         }
                         _ => {}
@@ -148,8 +149,10 @@ impl Game {
                 ObjectType::Bullet(ship) => {
                     match self.sim.get_body(bullet.body).did_collide {
                         Some(body) => {
-                            self.springs.push(Spring::new(body, ship));
                             bullet.should_be_removed = true;
+                            if body != ship {
+                                self.springs.push(Spring::new(body, ship));
+                            }
                         }
                         _ => {}
                     }

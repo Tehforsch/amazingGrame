@@ -1,7 +1,7 @@
 extern crate piston_window;
 extern crate opengl_graphics;
 
-use piston_window::{Button,EventLoop, Input, OpenGL, PistonWindow, WindowSettings,Motion};
+use piston_window::{Button,EventLoop, Input, OpenGL, PistonWindow, WindowSettings,Motion, Key};
 use opengl_graphics::GlGraphics;
 use self::resources::Resources;
 use game::input::{InputController, Actions};
@@ -33,6 +33,12 @@ fn main() {
     while let Some(e) = window.next() {
         match e {
             Input::Press(Button::Keyboard(key)) => {
+                match key {
+                    Key::F8 => {
+                        game = game::Game::new();
+                    }
+                    _ => {}
+                }
                 input_controller.key_press(key);
             }
 
@@ -46,7 +52,7 @@ fn main() {
             }
 
             Input::Render(args) => {
-                gl.draw(args.viewport(), |context, gl| render::render(context, gl, &mut resources, &game));
+                gl.draw(args.viewport(), |context, gl| render::render(context, gl, &mut resources, &game, input_controller.draw_help));
             }
 
             _ => {}

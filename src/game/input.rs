@@ -2,7 +2,8 @@ use piston_window::{ControllerButton, ControllerAxisArgs, Key};
 
 #[derive(Default)]
 pub struct InputController {
-    actions: Vec<Actions>
+    actions: Vec<Actions>,
+    pub draw_help: bool
 }
 
 #[derive(Default, Debug, Copy, Clone)]
@@ -25,7 +26,8 @@ impl InputController {
             });
         }
         InputController {
-            actions: actions
+            actions: actions,
+            draw_help: false
         }
     }
 
@@ -34,7 +36,10 @@ impl InputController {
     }
 
     pub fn key_press(&mut self, key: Key) {
-        self.handle_key(key, true);
+        match key {
+            Key::F1 => self.draw_help = !self.draw_help,
+            _ => self.handle_key(key, true)
+        }
     }
 
     pub fn key_release(&mut self, key: Key) {
@@ -54,5 +59,4 @@ impl InputController {
             _ => ()
         }
     }
-
 }

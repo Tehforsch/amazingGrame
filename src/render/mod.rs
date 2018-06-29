@@ -26,8 +26,9 @@ const STAR_COLOR: [f32; 4] = [1.0, 1.0, 0.0, 1.0];
 const SHIP_COLOR: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
 const MOTHERSHIP_COLOR: [f32; 4] = [0.0, 1.0, 0.3, 1.0];
 const SCORE_COLOR: [f32; 4] = [1.0, 0.5, 0.5, 1.0];
+const HELP_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 
-pub fn render(context: Context, gl: &mut GlGraphics, resources: &mut Resources, game: &Game) {
+pub fn render(context: Context, gl: &mut GlGraphics, resources: &mut Resources, game: &Game, draw_help: bool) {
     piston_window::clear(BACKGROUND_COLOR, gl);
     for object in game.objects.iter() {
         match object.type_ {
@@ -41,12 +42,37 @@ pub fn render(context: Context, gl: &mut GlGraphics, resources: &mut Resources, 
     for spring in game.springs.iter() {
         render_spring(context, gl, game.sim.get_body(spring.body1), game.sim.get_body(spring.body2));
     }
+    // Score
     piston_window::text(SCORE_COLOR,
             22,
             &format!("Score: {}", game.score),
             &mut resources.font,
+            context.trans(600.0, 20.0).transform,
+            gl);
+    // Help text
+    if draw_help {
+        print_help(context, gl, resources);
+    }
+    else {
+        piston_window::text(HELP_COLOR,
+            22,
+            &format!("Press F1 for help."),
+            &mut resources.font,
             context.trans(10.0, 20.0).transform,
             gl);
+    }
+}
+
+fn print_help(context: Context, gl: &mut GlGraphics, resources: &mut Resources) {
+    let help_text = "F1: hide help\nF8: restart\n\nPlayer one:\nw: forward\na: turn left\nd: turn right\nleft shift: shoot\n\nPlayer two:\nUp: forward\nLeft: turn left\nRight: turn right\nright shift: shoot\nGoal: \nBring the stars (yellow) to the mothership (green)\nDon't crash into the black holes (grey)\n";
+    for (i, line) in help_text.split("\n").enumerate() {
+        piston_window::text(HELP_COLOR,
+            22,
+            line,
+            &mut resources.font,
+            context.trans(10.0, 20.0 + (i as f64) * 30.0).transform,
+            gl);
+    }
 }
 
 fn render_mothership(context: Context, gl: &mut GlGraphics, body: &Body) {
