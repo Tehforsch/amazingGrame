@@ -60,7 +60,7 @@ impl Simulation {
 
     pub fn collisions(&mut self) {
         for body in self.bodies.iter_mut() {
-            body.did_collide = None;
+            body.did_collide = vec![];
         }
         let mut slice = &mut self.bodies[..];
         let length = slice.len();
@@ -151,7 +151,7 @@ fn handle_collisions(body1 : &mut Body, body2 : &mut Body) {
             body1.apply_impulse(-collision_normal * impulse);
             body2.apply_impulse(collision_normal * impulse);
         }
-        body1.did_collide = Some(body2.id);
-        body2.did_collide = Some(body1.id);
+        body1.did_collide.push(body2.id);
+        body2.did_collide.push(body1.id);
     }
 }

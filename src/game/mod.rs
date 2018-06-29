@@ -16,12 +16,12 @@ const MOVE_STRENGTH : f64 = 10.0;
 const TURN_VEL_DECAY : f64 = 0.15;
 
 const BULLET_VEL : f64 = 2000.0;
-const BULLET_RADIUS : f64 = 10.0;
+const BULLET_RADIUS : f64 = 4.0;
 const BULLET_MASS: f64 = 0.1;
 const BULLET_LIFETIME: f64 = 1.0;
 
 const SHIP_MASS : f64 = 0.3;
-const SHIP_RADIUS : f64 = 25.0;
+const SHIP_RADIUS : f64 = 35.0;
 
 const STAR_MASS : f64 = 0.3;
 const STAR_RADIUS : f64 = 25.0;
@@ -37,6 +37,7 @@ const NUM_STARS : usize = 40;
 const NUM_BLACKHOLES : usize = 4;
 
 const STAR_SCORE: i32 = 100;
+const BLACKHOLE_SCORE: i32 = -100;
 
 pub const ARENA_WIDTH: f64 = 1920.0;
 pub const ARENA_HEIGHT: f64 = 1080.0;
@@ -45,7 +46,7 @@ const LEFT_MARGIN: f64 = 200.0;
 
 pub const DISTANCE_SCALING: i32 = 2;
 pub const WALL_RESTITUTION: f64 = 0.5;
-pub const G : f64 = 400.0;
+pub const G : f64 = 2000.0;
 pub const FRICTION : f64 = 0.2;
 
 pub struct Game {
@@ -53,7 +54,8 @@ pub struct Game {
     pub springs: Vec<Spring>,
     pub sim: simulation::Simulation,
     pub game_over: bool,
-    pub score: i32
+    pub score: i32,
+    pub should_respawn: Vec<bool>
 }
 
 impl Game {
@@ -90,7 +92,8 @@ impl Game {
             sim: sim,
             springs: vec![],
             game_over: false,
-            score: 0
+            score: 0,
+            should_respawn: vec![false, false]
         }
     }
 
@@ -98,6 +101,8 @@ impl Game {
         self.handle_springs();
         self.handle_bullets();
         self.handle_stars();
+        self.handle_blackholes();
+        self.handle_respawning();
         self.remove_objects();
         self.sim.timestep();
     }
@@ -139,14 +144,32 @@ impl Game {
         for star in self.objects.iter_mut() {
             match star.type_ {
                 ObjectType::Star => {
-                    match self.sim.get_body(star.body).did_collide {
-                        Some(body) => {
-                            if body == mothership_id {
-                                star.should_be_removed = true;
-                                self.score += STAR_SCORE;
-                            }
+                    for &body in self.sim.get_body(star.body).did_collide.iter() {
+                        if body == mothership_id {
+                            star.should_be_removed = true;
+                            self.score += STAR_SCORE;
                         }
-                        _ => {}
+                    }
+                },
+                _ => {}
+            }
+        }
+    }
+
+    pub fn handle_blackholes(&mut self) {
+        let ship_bodies = vec![self.get_ship(0).body, self.get_ship(1).body];
+        for blackhole in self.objects.iter_mut() {
+            match blackhole.type_ {
+                ObjectType::BlackHole => {
+                    for body in self.sim.get_body(blackhole.body).did_collide.iter() {
+                        let ship = ship_bodies.iter().position(|b| b == body);
+                        match ship {
+                            Some(ship_num) => {
+                                self.score += BLACKHOLE_SCORE;
+                                self.should_respawn[ship_num] = true;
+                            }
+                            _ => {}
+                        }
                     }
                 },
                 _ => {}
@@ -156,28 +179,23 @@ impl Game {
 
     pub fn handle_bullets(&mut self) {
         let ship_bodies = vec![self.get_ship(0).body, self.get_ship(1).body];
-        println!("{:?}", ship_bodies);
         for bullet in self.objects.iter_mut() {
             match bullet.type_ {
                 ObjectType::Bullet(ship_num, time) => {
-                    match self.sim.get_body(bullet.body).did_collide {
-                        Some(body) => {
-                            bullet.should_be_removed = true;
-                            println!("removing {}", bullet.body);
-                            let ship_body = ship_bodies[ship_num];
-                            if body != ship_body {
-                                let mut add_spring = true;
-                                for spring in self.springs.iter() {
-                                    if spring.body1 == body && spring.body2 == ship_body {
-                                        add_spring = false;
-                                    }
-                                }
-                                if add_spring {
-                                    self.springs.push(Spring::new(body, ship_body));
+                    for &body in self.sim.get_body(bullet.body).did_collide.iter() {
+                        bullet.should_be_removed = true;
+                        let ship_body = ship_bodies[ship_num];
+                        if body != ship_body {
+                            let mut add_spring = true;
+                            for spring in self.springs.iter() {
+                                if spring.body1 == body && spring.body2 == ship_body {
+                                    add_spring = false;
                                 }
                             }
+                            if add_spring {
+                                self.springs.push(Spring::new(body, ship_body));
+                            }
                         }
-                        _ => {}
                     }
                     if self.sim.time - time > BULLET_LIFETIME {
                         bullet.should_be_removed = true;
@@ -186,6 +204,16 @@ impl Game {
                 _ => {}
             }
         }
+    }
+
+    pub fn handle_respawning(&mut self) {
+        for ship_num in 0..NUM_SHIPS {
+            if self.should_respawn[ship_num] {
+                self.respawn_ship(ship_num);
+            }
+            self.should_respawn[ship_num] = false;
+        }
+
     }
 
     pub fn get_mothership(&self) -> &Object {
@@ -246,7 +274,7 @@ impl Game {
             let ship = self.get_ship(ship_num);
             let direction = Point::from_angle(self.sim.get_body(ship.body).apos);
             let spawn_pos = self.sim.get_body(ship.body).pos + direction * (self.sim.get_body(ship.body).radius + BULLET_RADIUS * 1.1);
-            let mut bullet = Body::new(spawn_pos, BULLET_MASS, 10.0);
+            let mut bullet = Body::new(spawn_pos, BULLET_MASS, BULLET_RADIUS);
             bullet.vel = direction * BULLET_VEL;
             self.sim.get_body_mut(ship.body).apply_impulse(-bullet.vel * BULLET_MASS);
             let index = self.sim.add_body(bullet);
@@ -256,7 +284,7 @@ impl Game {
 
     pub fn control_respawning(&mut self, ship_num: usize, actions: Actions) {
         if actions.respawn {
-            self.respawn_ship(ship_num);
+            self.should_respawn[ship_num] = true;
         }
     }
 
@@ -267,7 +295,6 @@ impl Game {
         self.objects[index].should_be_removed = true;
         let index = self.sim.add_body(new_ship);
         self.objects.push(Object::new(index, ObjectType::Ship(ship_number)));
-        println!("respawning");
         for bullet in self.objects.iter_mut() {
             match bullet.type_ {
                 ObjectType::Bullet(ship_number_, _) => {
@@ -278,7 +305,6 @@ impl Game {
                 _ => {}
             }
         }
-        // ship.body = index;
     }
 
 }

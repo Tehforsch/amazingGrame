@@ -12,7 +12,7 @@ pub struct Body {
     pub radius: f64,
     pub moment_of_inertia: f64,
     pub gravity_flag: i32,
-    pub did_collide: Option<usize>,
+    pub did_collide: Vec<usize>,
     pub id: usize,
     pub should_be_removed: bool
 }
@@ -62,7 +62,7 @@ impl Body {
             radius: radius,
             moment_of_inertia: moment_of_inertia,
             gravity_flag: 0,
-            did_collide: None,
+            did_collide: vec![],
             id: 0,
             should_be_removed: false
         }

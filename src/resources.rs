@@ -10,7 +10,6 @@ pub struct Resources {
 impl Resources {
     /// Initialize and return the `Resources`
     pub fn new() -> Resources {
-        println!("{:?}", env::current_exe().unwrap().parent().to_owned());
         let exe_directory = env::current_exe().unwrap().parent().unwrap().to_owned();
         Resources {
             font: GlyphCache::new(&exe_directory.join("../../resources/FiraMono-Bold.ttf")).unwrap()
