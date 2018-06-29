@@ -51,7 +51,7 @@ impl Simulation {
             let first_length = first.len();
             let mut b1 = &mut first[first_length-1];
             for mut b2 in second {
-                if b1.gravity_flag == 2 && b2.gravity_flag >= 1 {
+                if b1.gravity_flag == 2 && b2.gravity_flag >= 1 || b2.gravity_flag == 2 && b1.gravity_flag >= 1{
                     apply_gravity(b1, b2);
                 }
             }

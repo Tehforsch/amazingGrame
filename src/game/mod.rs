@@ -46,7 +46,7 @@ const LEFT_MARGIN: f64 = 200.0;
 
 pub const DISTANCE_SCALING: i32 = 2;
 pub const WALL_RESTITUTION: f64 = 0.5;
-pub const G : f64 = 2000.0;
+pub const G : f64 = 1000.0;
 pub const FRICTION : f64 = 0.2;
 
 pub struct Game {
@@ -80,13 +80,6 @@ impl Game {
             }
         }
         let mut sim = simulation::Simulation::new(bodies);
-        for object in objects.iter_mut() { 
-            match object.type_ {
-                ObjectType::BlackHole => sim.get_body_mut(object.body).gravity_flag = 1,
-                ObjectType::Ship(_) => sim.get_body_mut(object.body).gravity_flag = 2,
-                _ => {}
-            }
-        }
         Game {
             objects: objects,
             sim: sim,
@@ -312,7 +305,9 @@ impl Game {
 pub fn get_ship_body() -> Body {
     let x = rand::random::<f64>() * (ARENA_WIDTH-LEFT_MARGIN) + LEFT_MARGIN;
     let y = 50.0;
-    Body::new(Point{x: x, y: y}, SHIP_MASS, SHIP_RADIUS)
+    let mut b = Body::new(Point{x: x, y: y}, SHIP_MASS, SHIP_RADIUS);
+    b.gravity_flag = 2;
+    b
 }
 
 pub fn get_ships(num_ships: usize) -> Vec<Body> {
@@ -351,7 +346,9 @@ pub fn get_black_holes(num_bodies: usize) -> Vec<Body> {
         let y = rand::random::<f64>() * (ARENA_HEIGHT-TOP_MARGIN) + TOP_MARGIN;
         let mass = rand::random::<f64>() * (MAX_MASS_BLACKHOLE-MIN_MASS_BLACKHOLE) + MIN_MASS_BLACKHOLE;
         let radius = 10.0 * mass.sqrt();
-        bodies.push(Body::new(Point{x: x, y: y}, mass, radius))
+        let mut b = Body::new(Point{x: x, y: y}, mass, radius);
+        b.gravity_flag = 1;
+        bodies.push(b)
     }
     bodies
 }
