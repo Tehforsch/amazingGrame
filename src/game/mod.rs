@@ -10,6 +10,7 @@ use self::spring::Spring;
 use ::simulation;
 use ::simulation::body::Body;
 use ::point::Point;
+use ::simulation::Wall;
 
 const TURN_VEL : f64 = 5.0;
 const MOVE_STRENGTH : f64 = 10.0;
@@ -39,8 +40,6 @@ const NUM_BLACKHOLES : usize = 4;
 const STAR_SCORE: i32 = 100;
 const BLACKHOLE_SCORE: i32 = -100;
 
-pub const ARENA_WIDTH: f64 = 1920.0;
-pub const ARENA_HEIGHT: f64 = 1080.0;
 const TOP_MARGIN: f64 = 200.0;
 const LEFT_MARGIN: f64 = 200.0;
 
@@ -54,15 +53,16 @@ pub struct Game {
     pub springs: Vec<Spring>,
     pub sim: simulation::Simulation,
     pub game_over: bool,
-    pub score: i32,
-    pub should_respawn: Vec<bool>
+    pub score: Vec<i32>,
+    pub should_respawn: Vec<bool>,
+    pub arena_size: Point
 }
 
 impl Game {
-    pub fn new() -> Game{
-        let mut bodies = get_ships(NUM_SHIPS);
-        bodies.append(&mut get_stars(NUM_STARS));
-        bodies.append(&mut get_black_holes(NUM_BLACKHOLES));
+    pub fn new(arena_size: Point) -> Game{
+        let mut bodies = get_ships(NUM_SHIPS, arena_size);
+        bodies.append(&mut get_stars(NUM_STARS, arena_size));
+        bodies.append(&mut get_black_holes(NUM_BLACKHOLES, arena_size));
         bodies.push(get_mothership());
         let mut objects = vec![];
         for (i, b) in bodies.iter().enumerate() {
@@ -79,14 +79,21 @@ impl Game {
                 objects.push(Object::new(i, ObjectType::Mothership));
             }
         }
-        let mut sim = simulation::Simulation::new(bodies);
+        let walls = vec![
+            Wall{pos: Point{x:0.0, y:0.0}, normal: Point{x:1.0, y:0.0}},
+            Wall{pos: Point{x:arena_size.x, y:0.0}, normal: Point{x:-1.0, y:0.0}},
+            Wall{pos: Point{x:0.0, y:0.0}, normal: Point{x:0.0, y:1.0}},
+            Wall{pos: Point{x:0.0, y:arena_size.y}, normal: Point{x:0.0, y:-1.0}},
+        ];
+        let mut sim = simulation::Simulation::new(bodies, walls);
         Game {
             objects: objects,
             sim: sim,
             springs: vec![],
             game_over: false,
-            score: 0,
-            should_respawn: vec![false, false]
+            score: vec![0, 0],
+            should_respawn: vec![false, false],
+            arena_size: arena_size
         }
     }
 
@@ -134,13 +141,23 @@ impl Game {
 
     pub fn handle_stars(&mut self) {
         let mothership_id = self.get_mothership().body;
+        let ship_bodies = vec![self.get_ship(0).body, self.get_ship(1).body];
         for star in self.objects.iter_mut() {
             match star.type_ {
                 ObjectType::Star => {
                     for &body in self.sim.get_body(star.body).did_collide.iter() {
                         if body == mothership_id {
                             star.should_be_removed = true;
-                            self.score += STAR_SCORE;
+                            for spring in self.springs.iter() {
+                                if spring.body1 == star.body {
+                                    if ship_bodies[0] == spring.body2 { 
+                                        self.score[0] += STAR_SCORE
+                                    }
+                                    if ship_bodies[1] == spring.body2 { 
+                                        self.score[1] += STAR_SCORE
+                                    }
+                                }
+                            }
                         }
                     }
                 },
@@ -158,7 +175,7 @@ impl Game {
                         let ship = ship_bodies.iter().position(|b| b == body);
                         match ship {
                             Some(ship_num) => {
-                                self.score += BLACKHOLE_SCORE;
+                                self.score[ship_num] += BLACKHOLE_SCORE;
                                 self.should_respawn[ship_num] = true;
                             }
                             _ => {}
@@ -172,11 +189,15 @@ impl Game {
 
     pub fn handle_bullets(&mut self) {
         let ship_bodies = vec![self.get_ship(0).body, self.get_ship(1).body];
+        let bullet_bodies: Vec<usize> = self.objects.iter().filter(|o| match o.type_ { ObjectType::Bullet(_, _) => true, _ => false} ).map(|o| o.body).collect();
         for bullet in self.objects.iter_mut() {
             match bullet.type_ {
                 ObjectType::Bullet(ship_num, time) => {
                     for &body in self.sim.get_body(bullet.body).did_collide.iter() {
                         bullet.should_be_removed = true;
+                        if bullet_bodies.contains(&body) {
+                            continue;
+                        }
                         let ship_body = ship_bodies[ship_num];
                         if body != ship_body {
                             let mut add_spring = true;
@@ -282,7 +303,7 @@ impl Game {
     }
 
     pub fn respawn_ship(&mut self, ship_number: usize) {
-        let mut new_ship = get_ship_body();
+        let mut new_ship = get_ship_body(self.arena_size);
         let index = self.get_ship_index(ship_number);
         self.sim.get_body_mut(self.objects[index].body).should_be_removed = true;
         self.objects[index].should_be_removed = true;
@@ -302,27 +323,27 @@ impl Game {
 
 }
 
-pub fn get_ship_body() -> Body {
-    let x = rand::random::<f64>() * (ARENA_WIDTH-LEFT_MARGIN) + LEFT_MARGIN;
+pub fn get_ship_body(arena_size: Point) -> Body {
+    let x = rand::random::<f64>() * (arena_size.x-LEFT_MARGIN) + LEFT_MARGIN;
     let y = 50.0;
     let mut b = Body::new(Point{x: x, y: y}, SHIP_MASS, SHIP_RADIUS);
     b.gravity_flag = 2;
     b
 }
 
-pub fn get_ships(num_ships: usize) -> Vec<Body> {
+pub fn get_ships(num_ships: usize, arena_size: Point) -> Vec<Body> {
     let mut bodies : Vec<Body> = vec![];
     for i in 0..num_ships {
-        bodies.push(get_ship_body())
+        bodies.push(get_ship_body(arena_size))
     }
     bodies
 }
 
-pub fn get_stars(num_bodies: usize) -> Vec<Body> {
+pub fn get_stars(num_bodies: usize, arena_size: Point) -> Vec<Body> {
     let mut bodies : Vec<Body> = vec![];
     for _ in 0..num_bodies {
-        let x = rand::random::<f64>() * (ARENA_WIDTH-LEFT_MARGIN) + LEFT_MARGIN;
-        let y = rand::random::<f64>() * (ARENA_HEIGHT-TOP_MARGIN) + TOP_MARGIN;
+        let x = rand::random::<f64>() * (arena_size.x-LEFT_MARGIN) + LEFT_MARGIN;
+        let y = rand::random::<f64>() * (arena_size.y-TOP_MARGIN) + TOP_MARGIN;
         let mass = STAR_MASS;
         let radius = STAR_RADIUS;
         bodies.push(Body::new(Point{x: x, y: y}, mass, radius))
@@ -332,18 +353,18 @@ pub fn get_stars(num_bodies: usize) -> Vec<Body> {
 
 pub fn get_mothership() -> Body {
     let mut bodies : Vec<Body> = vec![];
-    let x = 100.0;
-    let y = 100.0;
+    let x = 150.0;
+    let y = 150.0;
     let mass = 1000.0;
     let radius = 50.0;
     Body::new(Point{x: x, y: y}, mass, radius)
 }
 
-pub fn get_black_holes(num_bodies: usize) -> Vec<Body> {
+pub fn get_black_holes(num_bodies: usize, arena_size: Point) -> Vec<Body> {
     let mut bodies : Vec<Body> = vec![];
     for _ in 0..num_bodies {
-        let x = rand::random::<f64>() * (ARENA_WIDTH-LEFT_MARGIN) + LEFT_MARGIN;
-        let y = rand::random::<f64>() * (ARENA_HEIGHT-TOP_MARGIN) + TOP_MARGIN;
+        let x = rand::random::<f64>() * (arena_size.x-LEFT_MARGIN) + LEFT_MARGIN;
+        let y = rand::random::<f64>() * (arena_size.y-TOP_MARGIN) + TOP_MARGIN;
         let mass = rand::random::<f64>() * (MAX_MASS_BLACKHOLE-MIN_MASS_BLACKHOLE) + MIN_MASS_BLACKHOLE;
         let radius = 10.0 * mass.sqrt();
         let mut b = Body::new(Point{x: x, y: y}, mass, radius);

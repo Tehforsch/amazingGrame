@@ -48,9 +48,15 @@ pub fn render(context: Context, gl: &mut GlGraphics, resources: &mut Resources, 
     // Score
     piston_window::text(SCORE_COLOR,
             22,
-            &format!("Score: {}", game.score),
+            &format!("Score: {}", game.score[0]),
             &mut resources.font,
             context.trans(600.0, 20.0).transform,
+            gl);
+    piston_window::text(SCORE_COLOR,
+            22,
+            &format!("Score: {}", game.score[1]),
+            &mut resources.font,
+            context.trans(800.0, 20.0).transform,
             gl);
     // Help text
     if draw_help {

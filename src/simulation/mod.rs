@@ -2,7 +2,7 @@ pub mod body;
 
 use ::point::Point;
 use self::body::Body;
-use ::game::{ARENA_HEIGHT,ARENA_WIDTH,G,DISTANCE_SCALING,WALL_RESTITUTION,FRICTION};
+use ::game::{G,DISTANCE_SCALING,WALL_RESTITUTION,FRICTION};
 
 const DT : f64 = 0.01;
 // const G : f64 = 2000000.0;
@@ -11,8 +11,8 @@ const CLAMP_IMPULSES : bool = false;
 const BAUMGARTE_CORRECTION_STRENGTH: f64 = 10.0;
 
 pub struct Wall {
-    pos: Point,
-    normal: Point
+    pub pos: Point,
+    pub normal: Point
 }
 
 pub struct Simulation {
@@ -112,17 +112,11 @@ impl Simulation {
         self.next_id - 1
     }
 
-    pub fn new(mut bodies: Vec<Body>) -> Simulation {
+    pub fn new(mut bodies: Vec<Body>, walls: Vec<Wall>) -> Simulation {
         for (i, body) in bodies.iter_mut().enumerate() {
             body.id = i;
         }
         let next_id = bodies.len();
-        let walls = vec![
-            Wall{pos: Point{x:0.0, y:0.0}, normal: Point{x:1.0, y:0.0}},
-            Wall{pos: Point{x:ARENA_WIDTH, y:0.0}, normal: Point{x:-1.0, y:0.0}},
-            Wall{pos: Point{x:0.0, y:0.0}, normal: Point{x:0.0, y:1.0}},
-            Wall{pos: Point{x:0.0, y:ARENA_HEIGHT}, normal: Point{x:0.0, y:-1.0}},
-        ];
         Simulation{
             bodies: bodies,
             next_id: next_id,
