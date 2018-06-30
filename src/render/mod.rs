@@ -23,7 +23,7 @@ const BLACK_HOLE_COLOR: [f32; 4] = [0.3, 0.3, 0.3, 1.0];
 const BULLET_COLOR: [f32; 4] = [0.0, 0.0, 1.0, 1.0];
 const SPRING_COLOR: [f32; 4] = [0.0, 0.0, 1.0, 1.0];
 const STAR_COLOR: [f32; 4] = [1.0, 1.0, 0.0, 1.0];
-const SHIP_COLOR: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
+const SHIP_COLOR: [[f32; 4]; 2] = [[1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 1.0, 1.0]];
 const MOTHERSHIP_COLOR: [f32; 4] = [0.0, 1.0, 0.3, 1.0];
 const SCORE_COLOR: [f32; 4] = [1.0, 0.5, 0.5, 1.0];
 const HELP_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
@@ -46,13 +46,13 @@ pub fn render(context: Context, gl: &mut GlGraphics, resources: &mut Resources, 
         render_spring(context, gl, game.sim.get_body(spring.body1), game.sim.get_body(spring.body2));
     }
     // Score
-    piston_window::text(SCORE_COLOR,
+    piston_window::text(SHIP_COLOR[0],
             22,
             &format!("Score: {}", game.score[0]),
             &mut resources.font,
             context.trans(600.0, 20.0).transform,
             gl);
-    piston_window::text(SCORE_COLOR,
+    piston_window::text(SHIP_COLOR[1],
             22,
             &format!("Score: {}", game.score[1]),
             &mut resources.font,
@@ -116,7 +116,7 @@ fn render_ship(context: Context, gl: &mut GlGraphics, ship: &Body, ship_num: usi
         .trans(ship.pos.x, ship.pos.y)
         .rot_rad(ship.apos)
         .scale(ship.radius, ship.radius);
-    piston_window::polygon(SHIP_COLOR, SHIP_POLYGON, transform, gl);
+    piston_window::polygon(SHIP_COLOR[ship_num], SHIP_POLYGON, transform, gl);
 }
 
 fn render_spring(context: Context, gl: &mut GlGraphics, body1: &Body, body2: &Body) {
